@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BTC2PM</title>
+    <meta charset="utf-8"/>
+    <link href='https://fonts.googleapis.com/css?family=Montserrat:400' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="bundles/exchangerskeleton/js/chosen/chosen.min.css"/>
+    <link rel="stylesheet" href="bundles/exchangerskeleton/css/800_16_0.css" media="all">
+    <link rel="stylesheet" href="bundles/exchangerskeleton/css/skeleton-1.css" media="all">
+        <style>.exchange-btn{
+        width: 757px;
+        height: 66px;
+        background: url('bundles/exchangerskeleton/images/exchange-btn-big-en.png.gif') no-repeat;
+        background-size: cover;
+        border: none;
+        cursor: pointer;
+        text-indent: -9999px;
+    }
+
+    .go-btn{
+        width: 150px;
+        height: 30px;
+        background: url('bundles/exchangerskeleton/images/partners/go-btn-en.png') no-repeat;
+        background-size: cover;
+        border: none;
+        cursor: pointer;
+        text-indent: -9999px;
+    }
+
+    .exchange-btn.small{
+        width: 358px;
+        height: 66px;
+        background: url('bundles/exchangerskeleton/images/exchange-btn-small-en.png') no-repeat;
+    }
+
+    .exchange-btn:active {
+        position:relative;
+        top:1px;
+    }
+
+    .exchange-btn[disabled="disabled"]{
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    </style>    <style type="text/css">.take_color{
+        color: #ffb400;
+    }
+
+    .give_color{
+        color: black;
+    }
+</style>        
+    <script type="text/javascript" src="bundles/exchangerskeleton/js/jquery-1.8.3.min.js"></script>
+    <script src="bundles/exchangerskeleton/js/chosen/chosen.jquery.min.js"></script>
+    <script src="bundles/exchangerskeleton/js/jquery-qrcode.min.js"></script>
+    <script type="text/javascript">
+                
+                                                                                                                                                                                var conditions = jQuery.parseJSON('null');
+var current_currency = 'usd';
+var course = jQuery.parseJSON('{"usd":4072.56}');
+var partner_course = undefined;
+var partner_currency = 'usd';
+var partners_schema = jQuery.parseJSON('{"btc2cashin":"https","pm2cashin":"https","btc2wm":"https","pm2btc":"https","pm2wm":"http"}');
+var partners_courses = jQuery.parseJSON('{"btc2wm":{"usd":3872.93,"rur":262971.86},"pm2btc":{"btc":-401862.62},"pm2wm":{"usd":0.92,"rur":62.47}}');
+var promo_course = jQuery.parseJSON('{"usd":4112.49}');
+var btc_calc = false;
+
+$(function () {
+    $('.payment-form').on('submit', function (event) {
+        $('.pay').prop('disabled', true);
+    });
+
+    $('.pay').removeProp('disabled');
+
+    if (window.location.hash.substr(1) == 'voucher') {
+        $('input#voucher').prop('checked', true);
+    }
+
+});
+
+function compound_details($field, $linked_field) {
+    if ($field.val()) {
+        $('.cashin-details').removeAttr('required');
+    } else {
+        if (!$linked_field.val()) {
+            $('.cashin-details').attr('required', 'required');
+        } else {
+            $('.cashin-details').removeAttr('required');
+        }
+    }
+    $('#hidden-details').val(
+            $field.data('label')
+            + ': '
+            + $field.val()
+            + ' '
+            + $linked_field.data('label')
+            + ': '
+            + $linked_field.val()
+    );
+}
+
+function clear_promo(promo_obj) {
+    if ($(promo_obj).val().length > 0) {
+        $(promo_obj).val($(promo_obj).val().toString().replace(/[^0-9a-zA-Z]/g, ''));
+
+        var source = document.getElementById('source');
+        if (source) {
+                        recalc(source);
+                    }
+    }
+}
+
+function get_payment_course(course_from_partner) {
+    if (course_from_partner !== 'undefined' && course_from_partner) {
+        return partner_course ? partner_course : course;
+    }
+
+    var payment_course = course;
+    if ($('#promo_code').val().length == 7) {
+        payment_course = promo_course;
+    }
+
+    return payment_course;
+}
+
+function get_current_currency(course_from_partner) {
+    if (course_from_partner !== 'undefined' && course_from_partner) {
+        return partner_currency;
+    }
+
+    return current_currency;
+}
+
+function recalc(source, target, course_from_partner) {
+    var payment_course = get_payment_course(course_from_partner);
+
+    $(source).val($(source).val().toString()
+            .replace(/,/g, '.')
+            .replace(/[^0-9\.]/g, '')
+            .replace(/^0([\d].+)/, '$1'));
+
+    if (btc_calc) {
+        $(source).val($(source).val().toString()
+                .replace(/(\.\d{5})(.+)/, '$1')
+                .replace(/^(,)/, ''));
+    } else {
+        $(source).val($(source).val().toString()
+                .replace(/(\.\d{2})(.+)/, '$1')
+                .replace(/^(0|,|\.|0\.)/, ''));
+    }
+
+    var calc_currency = get_current_currency(course_from_partner);
+    var target_amount = parseFloat($(source).val()) * payment_course[calc_currency];
+
+    if (isNaN(target_amount)) {
+        target_amount = 0.00;
+    }
+
+    if (typeof target !== 'undefined') {
+        $(target).val(target_amount.toFixed(2));
+        return;
+    }
+
+        $('#target').val(target_amount.toFixed(2));
+    }
+
+function recalc_reverse(target, source, course_from_partner) {
+    var payment_course = get_payment_course(course_from_partner);
+
+    $(target).val($(target).val().toString()
+            .replace(/,/g, '.')
+            .replace(/[^0-9\.]/g, '')
+            .replace(/^0([\d].+)/, '$1')
+            .replace(/(\.\d{2})(.+)/, '$1')
+            .replace(/^(0|,|\.|0\.)/, ''));
+
+    var calc_currency = get_current_currency(course_from_partner);
+
+    if (conditions) {
+        $.each(conditions, function (i, condition) {
+            if (parseFloat(condition['amount']) <= $(target).val()) {
+                payment_course[calc_currency] = parseFloat(condition['course']);
+            }
+        });
+    }
+
+    var source_amount = parseFloat($(target).val()) / payment_course[calc_currency];
+
+    if (btc_calc) {
+        if (isNaN(source_amount)) {
+            source_amount = 0.00000;
+        }
+    } else {
+        if (isNaN(source_amount)) {
+            source_amount = 0.00;
+        } else {
+            source_amount += 0.005; //round to up
+        }
+    }
+
+    if (typeof source !== 'undefined') {
+        if (btc_calc) {
+            $(source).val(source_amount.toFixed(5));
+        } else {
+            $(source).val(source_amount.toFixed(2));
+        }
+
+        return;
+    }
+
+        $('#source').val(source_amount.toFixed(btc_calc ? 5 : 2));
+    }
+
+function setAmount() {
+    var data = {};
+    if ($('.crypto-currency').length) {
+        data['crypto_currency'] = $('.crypto-currency').val()
+    }
+
+    $.post('/course', data, function (response) {
+        if (!response.course) {
+            return;
+        }
+        course = response.course;
+        promo_course = response.promo_course;
+        $('#header-course').html(response.course_render);
+        $('#promo_course').html(response.promo_course_render);
+
+        var source = document.getElementById('source');
+        if (source) {
+                        recalc(source);
+                    }
+    });
+}
+
+function setPartnerCurrency(e) {
+    partner_currency = $(e).val();
+}
+
+function get_cryptocheck_status() {
+    }
+
+function formatNumber (text) {
+    return text.replace(/k|к|r|л/i, '000')
+            .replace(',', '.')
+            .replace(/[^0-9\.]/g, '')
+            .replace(/^0([\d].+)/, '$1')
+            .replace(/(\.\d{8})(.+)/, '$1');
+}
+
+function setBitcoinQR(selector, address) {
+    var original_text = 'bitcoin:' + address;
+    var text = original_text;
+    var $container = $(selector);
+    $container.find('.amount').on('change textInput input', function () {
+        var amount = formatNumber($(this).val().trim());
+        $(this).val(amount);
+
+        if (amount && $.isNumeric(amount) && amount > 0) {
+            text = original_text + '?amount=' + amount;
+        } else {
+            text = original_text;
+        }
+        $container.find('.qr').html('').qrcode({
+            text: text
+        });
+    });
+
+    $container.find('.amount').change();
+    $container.slideDown();
+}
+
+var ajax = {};
+ajax.x = function () {
+    try {
+        return new ActiveXObject('Msxml2.XMLHTTP')
+    } catch (e1) {
+        try {
+            return new ActiveXObject('Microsoft.XMLHTTP')
+        } catch (e2) {
+            return new XMLHttpRequest()
+        }
+    }
+};
+
+ajax.send = function (url, callback, method, data) {
+    var x = ajax.x();
+    x.open(method, url, false);
+    x.onreadystatechange = function () {
+        if (x.readyState == 4) {
+            callback(x.responseText);
+        }
+    };
+    x.send(data)
+};
+
+var course_timer = null;
+
+$(document).ready(function () {
+    $('#ticket_button a').click(function () {
+        var wrapper = $('#ticket_wrapper');
+        wrapper.animate({
+            left: parseInt(wrapper.css('left'), 10) == 0 ? -380 : 0
+        }, 500)
+    });
+
+    $('#send_ticket').click(function () {
+        $.post('/create_ticket', $('#ticket_form').serialize(), function (data) {
+            var msg = $('#ticket_content').find('.msg');
+            msg.addClass('alert');
+            if (data.status == 'ok') {
+                msg.html('Message sent successfully');
+                $('#ticket_form').find('.f_text').val('');
+            } else {
+                msg.html('Wrong JIT/Email');
+            }
+        });
+    });
+
+    var $radio = $('.radio-field');
+    $radio.find('input:checked').parent().addClass('checked');
+    $radio.find('label').click(function () {
+        $(this).parent().parent().parent().find('.radio-field').removeClass('checked').find('input').removeAttr('checked');
+        $(this).parent().addClass('checked');
+        $(this).parent().find('input').attr('checked', 'checked').change();
+    });
+
+    if ($('.crypto-currency').length) {
+        $('.crypto-currency').change(function () {
+            setAmount();
+        });
+    }
+});
+    </script>
+    <script type="text/javascript">
+    $(function() {
+    var partners = $('#partners');
+    var partners_container = $('#partners-container');
+
+    var clear_partners = function() {
+        partners_container.html($('#first-partner').html());
+    };
+
+    if (partners_container.length) {
+        var all_partners = partners_container.data('partners').split(',');
+        all_partners.pop();
+        clear_partners();
+    }
+
+    Array.prototype.in_array = function(p_val) {
+        for (var i = 0, l = this.length; i < l; i++) {
+            if (this[i] == p_val) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    var showAllPartners = function(inactive) {
+        if (inactive) {
+            clear_partners();
+            partners.css('background-color', 'rgba(255, 255, 255, 0.30)');
+            partners.css('border-color', '#E0E0E0');
+            partners.removeClass('inactive');
+        } else {
+            partners_container.html($('#all-partners').html());
+            partners.css('background-color', 'white');
+            partners.css('border-color', '#DDDDDD');
+            partners.addClass('inactive');
+        }
+    };
+
+    var initTypes = function() {
+        $('#partners-calc').slideUp('slow');
+        var selected_type = $('#in-types').find('.in-type.selected');
+
+        if (!selected_type.length) {
+            $('#in-types .in-type').first().addClass('selected');
+            selected_type = $('#in-types .in-type').first();
+        }
+
+        var out_types = $('#out-types .out-type');
+
+        out_types.removeClass('selected');
+        out_types.removeClass('active');
+        $('#go-to-partner').addClass('inactive');
+
+        out_types.each(function() {
+            var current_partner = selected_type.data('id') + '2' + $(this).data('id');
+            if (all_partners.in_array(current_partner) || (selected_type.data('id') != 'pmr' && $(this).data('id') == 'card')) {
+                $(this).addClass('active');
+            }
+        });
+    };
+
+    var getPartnerName = function() {
+        var in_type = $('#in-types').find('.in-type.selected');
+        var out_type = $('#out-types').find('.out-type.selected');
+
+        if (out_type.data('id') == 'card') {
+            return 'all2card';
+        }
+
+        if (in_type.length && out_type.length) {
+            return in_type.data('id') + 2 + out_type.data('id');
+        }
+
+
+        return undefined;
+    };
+
+    var getPartnerURL = function() {
+        var partner = getPartnerName();
+
+        if (partner) {
+            var schema = partners_schema[partner];
+
+            return schema + '://' + partner + '.me';
+        }
+
+
+        return undefined;
+    };
+
+
+    $('.partners-show-all').live('click', function(e) {
+        e.preventDefault();
+        showAllPartners(partners.hasClass('inactive'));
+        initTypes();
+    });
+
+    $('#in-types .in-type').live('click', function() {
+        $('#in-types .in-type').removeClass('selected');
+        $(this).addClass('selected');
+        initTypes();
+    });
+
+    $('#out-types .out-type.active').live('click', function() {
+        $('#out-types .out-type').removeClass('selected');
+        $(this).addClass('selected');
+        $('#go-to-partner').removeClass('inactive');
+
+        var partner_name = getPartnerName();
+        partner_course = partners_courses[partner_name];
+
+        if (partner_course) {
+            if ($('#out-types').find('.out-type.selected').data('id') === 'btc') {
+                $('#partner_source').attr('placeholder', '(amount to receive)').val('');
+                $('#partner_target').attr('placeholder', '(amount to pay)').val('');
+            } else {
+                $('#partner_source').attr('placeholder', '(amount to pay)').val('');
+                $('#partner_target').attr('placeholder', '(amount to receive)').val('');
+            }
+
+            $("#partner_currency").chosen({disable_search_threshold: 10, display_disabled_options: false, width: '75px'});
+
+            partner_currency = Object.keys(partner_course)[0];
+            if (Object.keys(partner_course).length > 1) {
+                $("#partner_currency").find('.rur').removeAttr('disabled');
+            } else {
+                $("#partner_currency").find('.rur').attr('disabled', true);
+                $("#partner_currency").find('.rur').removeAttr('selected');
+            }
+
+            $("#partner_currency").trigger("chosen:updated");
+            $('#partners-calc').slideDown('slow');
+        }
+
+    });
+
+    $('#go-to-partner').live('click', function() {
+        var url = getPartnerURL();
+
+        if (url) {
+//            window.open(url);
+            document.location.href = url;
+        } else {
+            $('#out-types').find('.out-type.active').fadeIn(100).fadeOut(100).fadeIn(100);
+        }
+    });
+
+    $('#partner_source').keyup(function() {
+
+    });
+
+    $('#partner_target').keyup(function() {
+
+    });
+});    </script>
+
+</head>
+<body class="btc2pm">
+<header>
+    <div class="top_line row">
+        <div class="wrap gu16">
+                            <span id="main_course">
+                    Exchange Course:
+                    <span id="course">
+                        <p class="light large-text">
+    Exchange Course: 1 BTC = 4072.56 USD (Reserve: 100000 PM USD)
+</p>
+                    </span>
+                </span>
+            
+
+                            <div class="lang">
+                    <ul class="language-items">
+                        <li>
+                            <a href="docs_api-_locale=ru.html">
+                                <div class="language-item " title="ru">
+                                    <div class="icon ru"></div>
+                                </div>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="docs_api-_locale=en.html">
+                                <div class="language-item active" title="en">
+                                    <div class="icon en"></div>
+                                </div>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                                                                    </div>
+            </div>
+
+    <div class="snow-border"></div>
+
+    <div class="bottom_line wrap row gu16">
+                <a href="index.html" class="col gu6" id="logo">
+            <img src="images/logo-2.png" class="logo" alt="BTC2PM" title="BTC2PM">
+        </a>
+                                    
+            
+                
+                            
+                                        
+                
+                            
+                    
+                
+        
+                                        
+                
+        
+                                        
+                
+        
+            
+    <div class="gu10" id="partners">
+
+        <div style="width: 100%; overflow: hidden;">
+            <b style="float: left;">
+                Other directions:
+            </b>
+            <a class="partners-show-all fr" href="">show all</a>
+        </div>
+        <div id="partners-container" class="ta-center" data-partners="btc2cashin,pm2cashin,btc2wm,pm2btc,pm2wm,"></div>
+
+        <div class="hide" id="first-partner">
+
+                            <ul class="w40 col">
+                    <li class="c-pointer partners-show-all">
+                        <img src="bundles/exchangerskeleton/images/partners/btc.png" alt="btc">
+                    </li>
+                </ul>
+
+                <div class="w20 col"><span style="margin: 5px 0 0;" class="arrow-right c-pointer partners-show-all"></span></div>
+
+                                                                            
+                        <ul class="w40 col">
+                            <li>
+                                <a href="http://btc2cashin.me" >
+                                    <img src="bundles/exchangerskeleton/images/partners/cashin.png"
+                                         class="out-types c-pointer" data-id="cashin" alt="cashin.me">
+                                </a>
+                            </li>
+                        </ul>
+
+                                                
+        </div>
+
+        <div class="hide" id="all-partners">
+
+            <div class="hide" id="partners-calc">
+                <div class="input-field-wrapper w100 clear">
+                    <div class="col input-field fl" style="position: absolute; left: 20px;">
+                        <select id="partner_currency" class="select" onchange="setPartnerCurrency(this)" required>
+                            <option value="usd" class="usd" selected>USD</option>
+                            <option value="rur" class="rur">RUR</option>
+                        </select>
+                    </div>
+
+                    <div class="col input-field fr">
+                        <input type="text" id="partner_source" placeholder="(amount to pay)" class="take_color" onkeyup="recalc(this, document.getElementById('partner_target'), true);">
+                    </div>
+
+                    <a href="docs_api-_locale=en.html#" class="col refresh fr" onclick="recalc_reverse(document.getElementById('partner_target'), document.getElementById('partner_source'), true);"></a>
+
+                    <div class="col input-field fr">
+                        <input type="text" id="partner_target" class="give_color" placeholder="(amount to receive)" onkeyup="recalc_reverse(this, document.getElementById('partner_source'), true);">
+                    </div>
+                </div>
+            </div>
+
+            <div class="types-select-wr">
+                                    <ul id="in-types" class="w40 col">
+                                                    <li class="in-type selected c-pointer" data-id="btc">
+                                <img src="bundles/exchangerskeleton/images/partners/btc.png" alt="btc">
+                            </li>
+                                                    <li class="in-type c-pointer" data-id="pm">
+                                <img src="bundles/exchangerskeleton/images/partners/pm.png" alt="pm">
+                            </li>
+                                            </ul>
+
+                    <div class="w20 h100 col"><span style="margin: 0;" class="arrow-right c-pointer"></span></div>
+
+                    <ul id="out-types" class="w40 col">
+                                                    <li class="out-type" data-id="cashin">
+                                <img src="bundles/exchangerskeleton/images/partners/cashin.png" alt="cashin">
+                            </li>
+                                                    <li class="out-type" data-id="wm">
+                                <img src="bundles/exchangerskeleton/images/partners/wm.png" alt="wm">
+                            </li>
+                                                    <li class="out-type" data-id="btc">
+                                <img src="bundles/exchangerskeleton/images/partners/btc.png" alt="btc">
+                            </li>
+                                            </ul>
+                            </div>
+
+
+            <input type="button" id="go-to-partner" class="go-btn inactive"/>
+
+        </div>
+
+    </div>
+            </div>
+
+            <div class="row wrap gu16 banner">
+            <a href="https://all2card.me" target="_blank">
+                <img src="bundles/exchangerskeleton/images/banners/all2card_en.gif" alt="ALL2Card.me">
+            </a>
+        </div>
+    
+    </header>
+
+<div class="clear"></div>
+
+<div class="wrap row gu16 content-body ny-border-red">
+    <div class="ny-border-yellow">
+        <div class="ny-border-red">
+                                    <div id="body">
+                <div class="content">
+    <div class="page-content">
+        <h1>
+	Документация API</h1>
+<h2>
+	<br />
+	1. Создание платежа:</h2>
+Платеж создается POST-запросом на URL <strong>/api/payment </strong><br />
+<br />
+Параметры:
+<ul>
+	<li>
+		<strong>account</strong> - аккаунт для пополнения</li>
+	<li>
+		<strong>comment</strong> - комментарий к платежу</li>
+</ul>
+<br />
+<h3>
+	<u>Пример создание платежа:</u></h3>
+&nbsp;curl --request POST --url https://btc2pm.me/api/payment --data &quot;account=U7777777&amp;comment=Order123&quot;<br />
+<h3>
+	<u>Результат запроса:</u></h3>
+{&quot;status&quot;:&quot;ok&quot;,&quot;data&quot;:{&quot;address&quot;:&quot;1BnthCrombAntezJaDqCgfnEtUM3CX84Qt&quot;,&quot;id&quot;:&quot;jakgMKyTPMjA5ODQ=&quot;,&quot;hash&quot;:&quot;f8aa88&quot;}}<br />
+<h2>
+	<br />
+	2. Проверка статуса платежа:</h2>
+Статус платежа можно првоерить GET-запросом на URL<strong> /api/status/{id}/{hash}<br />
+<br />
+Параметры:</strong>
+<ul>
+	<li>
+		<strong>id</strong> - номер платежа, выданный при создании платежа</li>
+	<li>
+		<strong>hash</strong> - секретный параметр, выданный при создании платежа</li>
+</ul>
+<br />
+<h3>
+	<u>Пример создание платежа:</u></h3>
+curl --request GET --url https://btc2pm.me/api/status/V7AaCxWPiMjA5ODE=/9f6ffb
+<h3>
+	<u>Результат запроса:</u></h3>
+{&quot;status&quot;:&quot;error&quot;,&quot;data&quot;:&quot;No payment&quot;}<br />
+<br />
+или<br />
+<br />
+{&quot;status&quot;:&quot;ok&quot;,&quot;data&quot;: {<br />
+&quot;status&quot;: &quot;ok&quot;,<br />
+&quot;account&quot;: &quot;U7777777&quot;,<br />
+&quot;amount&quot;: 10.0,<br />
+&quot;txid&quot;: &quot;6ac788e29b0291b05e708a6d6fa563d89bac5cfad00739eac54c0b7928892cf6&quot;,<br />
+&quot;comment&quot;: &quot;Order123&quot;<br />
+}}
+    </div>
+
+    <div class="spacing"></div>
+
+    <div style="text-align: center;"><a href="index.html">На главную</a></div>
+</div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<footer>
+    <div class="wrap gu16">
+
+        <span class="jid">email/jid: support@pm2btc.me<br/><a href="https://telegram.me/pm2btc" style="text-decoration: none;"><img src="bundles/exchangerskeleton/images/t_logo.png" alt="Telegram" style="width: 20px;position: relative;top:3px;"> pm2btc</a><br><a onclick="$(this).html('JID: pr@pm2btc.me'); return false;" href="docs_api-_locale=en.html#">partnership</a> </span>        <div class="hint" style="margin-bottom:10px;font-weight:bold;"><a href="docs_api.html">API Docs</a></div>        <div class="hint">
+                            <p>&copy; 2017 BTC2PM. All rights reserved.</p>
+                
+                <br/>
+                <!-- BestChange.com -->
+                <a href="http://www.bestchange.com/" target="_blank" rel="nofollow">
+                    <img src="bundles/exchangerskeleton/images/bestexchange.gif" title="E-money exchanger monitor BestChange.com" alt="PM, WM, BTC exchange rates" width="88" height="31" border="0"/>
+                </a>
+                <!-- BestChange.com -->
+                    </div>
+    </div>
+</footer>
+
+
+<script type="text/javascript">
+    btc_calc = true;
+</script><!-- begin olark code -->
+<script data-cfasync="false" type='text/javascript'>/*<![CDATA[*/window.olark||(function(c){var f=window,d=document,l=f.location.protocol=="https:"?"https:":"http:",z=c.name,r="load";var nt=function(){
+f[z]=function(){
+(a.s=a.s||[]).push(arguments)};var a=f[z]._={
+},q=c.methods.length;while(q--){(function(n){f[z][n]=function(){
+f[z]("call",n,arguments)}})(c.methods[q])}a.l=c.loader;a.i=nt;a.p={
+0:+new Date};a.P=function(u){
+a.p[u]=new Date-a.p[0]};function s(){
+a.P(r);f[z](r)}f.addEventListener?f.addEventListener(r,s,false):f.attachEvent("on"+r,s);var ld=function(){function p(hd){
+hd="head";return["<",hd,"></",hd,"><",i,' onl' + 'oad="var d=',g,";d.getElementsByTagName('head')[0].",j,"(d.",h,"('script')).",k,"='",l,"//",a.l,"'",'"',"></",i,">"].join("")}var i="body",m=d[i];if(!m){
+return setTimeout(ld,100)}a.P(1);var j="appendChild",h="createElement",k="src",n=d[h]("div"),v=n[j](d[h](z)),b=d[h]("iframe"),g="document",e="domain",o;n.style.display="none";m.insertBefore(n,m.firstChild).id=z;b.frameBorder="0";b.id=z+"-loader";if(/MSIE[ ]+6/.test(navigator.userAgent)){
+b.src="javascript:false"}b.allowTransparency="true";v[j](b);try{
+b.contentWindow[g].open()}catch(w){
+c[e]=d[e];o="javascript:var d="+g+".open();d.domain='"+d.domain+"';";b[k]=o+"void(0);"}try{
+var t=b.contentWindow[g];t.write(p());t.close()}catch(x){
+b[k]=o+'d.write("'+p().replace(/"/g,String.fromCharCode(92)+'"')+'");d.close();'}a.P(2)};ld()};nt()})({
+loader: "static.olark.com/jsclient/loader0.js",name:"olark",methods:["configure","extend","declare","identify"]});
+/* custom configuration goes here (www.olark.com/documentation) */
+olark.identify('7638-743-10-3822');/*]]>*/</script><noscript><a href="https://www.olark.com/site/7638-743-10-3822/contact" title="Contact us" target="_blank">Questions? Feedback?</a></noscript>
+<!-- end olark code -->
+<script>
+    olark.configure('system.group', 'cb45f1b6682f4e1e025e775de7c262bc');
+    olark('api.chat.onCommandFromOperator', function(event) {
+    	if (event.command.name == 'transfer') {
+            // olark('api.chat.sendMessageToVisitor', { body: "Let me point you to our FAQ page" });
+//            console.log('Transfer to main sup');
+            olark('api.chat.setOperatorGroup', {group: 'dcaa2169d0d06104bbe1cb5f7231c9f9'});
+        }
+    });
+</script>
+</body>
+</html>
