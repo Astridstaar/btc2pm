@@ -1,0 +1,114 @@
+body {
+    background: url('../images/winter_bg.jpg') #E6EDF5 50% 0;
+    background-size: cover;
+}
+
+.santa-hat{
+    width: 49px;
+    height: 47px;
+    background: url('../images/hat.png') no-repeat;
+    z-index: 15;
+    position: absolute;
+    left: 7%;
+}
+
+.logo{
+    margin-top: 10px;
+}
+
+
+.btc-e2wm .santa-hat {
+    left: 122px;
+}
+
+.pmr2btc .santa-hat {
+    left: 117px;
+}
+
+.pmr2pm .santa-hat {
+    left: 117px;
+}
+
+.btc-e2cashin .santa-hat {
+    left: 85px;
+}
+
+.pm2cashin .santa-hat {
+    left: 53px;
+}
+
+.btc2wm .santa-hat {
+    left: 91px;
+}
+
+.btc2pm .santa-hat {
+    left: 90px;
+}
+
+.btc2pmr .santa-hat {
+    left: 93px;
+}
+
+.btc-e2pmr .santa-hat {
+    left: 122px;
+}
+
+.btc-e2pm .santa-hat {
+    left: 122px;
+}
+
+.pm2cc .santa-hat {
+    left: 37px;
+    top: 5px;
+}
+
+.btc2cc .santa-hat {
+    top: 10px;
+    left: 51px;
+}
+
+.btc-e2cc .santa-hat {
+    width: 75px;
+    height: 67px;
+    top: -27px;
+    left: 123px;
+}
+
+.pmr2cc .santa-hat {
+    width: 75px;
+    height: 67px;
+    top: -27px;
+    left: 120px;
+}
+
+.cc2btc .santa-hat {
+    left: 188px;
+}
+
+.cc2btc-e .santa-hat {
+    top: -14px;
+    left: 177px;
+}
+
+.cc2wm .santa-hat {
+    top: -9px;
+    left: 186px;
+}
+
+.cc2pmr .santa-hat {
+    top: 8px;
+    left: 198px;
+}
+
+.cc2cashin .santa-hat {
+    left: 168px;
+}
+
+.all2card .santa-hat{
+    left: 86px;
+}
+
+
+.pm2wm .santa-hat{
+    left: 67px;
+}
